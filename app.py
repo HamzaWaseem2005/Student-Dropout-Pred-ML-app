@@ -1,167 +1,108 @@
+import joblib
+import pandas as pd
 import streamlit as st
-import requests
 
 st.set_page_config(
-    page_title="EduPredict AI | Student Risk Engine",
-    page_icon="🎓",
-    layout="wide"
+    page_title="Student Dropout Prediction System", page_icon="🎓", layout="centered"
 )
 
-st.markdown("""
-<style>
-    .main { background-color: #0f172a; color: #f8fafc; }
-    .stButton>button {
-        width: 100%;
-        background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-        color: white;
-        border: none;
-        padding: 0.75rem;
-        font-weight: bold;
-        border-radius: 0.5rem;
-        transition: all 0.3s ease;
-    }
-    .stButton>button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 20px -10px rgba(99, 102, 241, 0.5);
-    }
-</style>
-""", unsafe_allow_html=True)
 
-st.title("🎓 EduPredict AI: Institutional Retention & Dropout Risk Analyzer")
-st.markdown("Client-ready interactive decision support dashboard powered by a FastAPI backend and Scikit-Learn pipeline.")
+@st.cache_resource
+def load_model():
+  try:
+    return joblib.load("student_dropout_model.pkl")
+  except Exception as e:
+    return None
 
-tab1, tab2, tab3, tab4 = st.tabs([
-    "👤 Background & Profile", 
-    "📚 1st Semester Records", 
-    "📊 2nd Semester Records", 
-    "📈 Macro-Economics"
-])
 
-with tab1:
-    st.subheader("Demographic & Academic Background")
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        marital_status = st.selectbox("Marital Status", options=[1, 2, 3, 4, 5, 6], format_func=lambda x: {1:"Single", 2:"Married", 3:"Widower", 4:"Divorced", 5:"Facto union", 6:"Legally separated"}[x])
-        application_mode = st.number_input("Application Mode", value=17)
-        application_order = st.slider("Application Order", 1, 9, 1)
-        course = st.number_input("Course Code", value=33)
-        daytime_evening_attendance = st.selectbox("Attendance Type", options=[1, 0], format_func=lambda x: "Daytime" if x==1 else "Evening")
-    with col2:
-        previous_qualification = st.number_input("Previous Qualification Code", value=1)
-        previous_qualification_grade = st.number_input("Previous Qualification Grade", value=120.0)
-        nacionality = st.number_input("Nationality Code", value=1)
-        mothers_qualification = st.number_input("Mother's Qualification", value=1)
-        fathers_qualification = st.number_input("Father's Qualification", value=1)
-    with col3:
-        mothers_occupation = st.number_input("Mother's Occupation", value=3)
-        fathers_occupation = st.number_input("Father's Occupation", value=3)
-        admission_grade = st.number_input("Admission Grade", value=120.0)
-        displacement = st.selectbox("Displaced Student", options=[1, 0], format_func=lambda x: "Yes" if x==1 else "No")
-        educational_special_needs = st.selectbox("Educational Special Needs", options=[1, 0], format_func=lambda x: "Yes" if x==1 else "No")
+model = load_model()
 
-with tab2:
-    st.subheader("First Semester Performance")
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        debtor = st.selectbox("Debtor Status", options=[1, 0], format_func=lambda x: "Yes" if x==1 else "No", key="deb")
-        tuition_fees_up_to_date = st.selectbox("Tuition Fees Up To Date", options=[1, 0], format_func=lambda x: "Yes" if x==1 else "No")
-        gender = st.selectbox("Gender", options=[1, 0], format_func=lambda x: "Male" if x==1 else "Female")
-    with col2:
-        scholarship_holder = st.selectbox("Scholarship Holder", options=[1, 0], format_func=lambda x: "Yes" if x==1 else "No")
-        age_at_enrollment = st.number_input("Age at Enrollment", value=20)
-        international = st.selectbox("International Student", options=[1, 0], format_func=lambda x: "Yes" if x==1 else "No")
-        cu_1st_sem_credited = st.number_input("1st Sem Credited Units", value=0)
-    with col3:
-        cu_1st_sem_enrolled = st.number_input("1st Sem Enrolled Units", value=6)
-        cu_1st_sem_evaluations = st.number_input("1st Sem Evaluations", value=6)
-        cu_1st_sem_approved = st.number_input("1st Sem Approved Units", value=5)
-        cu_1st_sem_grade = st.number_input("1st Sem Grade Average", value=12.0)
-        cu_1st_sem_without_evaluations = st.number_input("1st Sem Units w/o Evaluations", value=0)
-
-with tab3:
-    st.subheader("Second Semester Performance")
-    col1, col2 = st.columns(2)
-    with col1:
-        cu_2nd_sem_credited = st.number_input("2nd Sem Credited Units", value=0)
-        cu_2nd_sem_enrolled = st.number_input("2nd Sem Enrolled Units", value=6)
-        cu_2nd_sem_evaluations = st.number_input("2nd Sem Evaluations", value=6)
-    with col2:
-        cu_2nd_sem_approved = st.number_input("2nd Sem Approved Units", value=5)
-        cu_2nd_sem_grade = st.number_input("2nd Sem Grade Average", value=12.0)
-        cu_2nd_sem_without_evaluations = st.number_input("2nd Sem Units w/o Evaluations", value=0)
-
-with tab4:
-    st.subheader("Macro-Economic Indicators")
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        unemployment_rate = st.number_input("Unemployment Rate (%)", value=10.8)
-    with col2:
-        inflation_rate = st.number_input("Inflation Rate (%)", value=1.4)
-    with col3:
-        gdp = st.number_input("GDP Growth Rate", value=1.74)
+st.title("🎓 Student Dropout Prediction System")
+st.markdown(
+    "Enter the student's academic and demographic details below to predict"
+    " whether they are at risk of dropping out."
+)
 
 st.markdown("---")
 
-if st.button("🚀 Run Predictive Analytics Engine"):
-    payload = {
-        "marital_status": marital_status,
-        "application_mode": application_mode,
-        "application_order": application_order,
-        "course": course,
-        "daytime_evening_attendance": daytime_evening_attendance,
-        "previous_qualification": previous_qualification,
-        "previous_qualification_grade": previous_qualification_grade,
-        "nacionality": nacionality,
-        "mothers_qualification": mothers_qualification,
-        "fathers_qualification": fathers_qualification,
-        "mothers_occupation": mothers_occupation,
-        "fathers_occupation": fathers_occupation,
-        "admission_grade": admission_grade,
-        "displaced": displacement,
-        "educational_special_needs": educational_special_needs,
-        "debtor": debtor,
-        "tuition_fees_up_to_date": tuition_fees_up_to_date,
-        "gender": gender,
-        "scholarship_holder": scholarship_holder,
-        "age_at_enrollment": age_at_enrollment,
-        "international": international,
-        "cu_1st_sem_credited": cu_1st_sem_credited,
-        "cu_1st_sem_enrolled": cu_1st_sem_enrolled,
-        "cu_1st_sem_evaluations": cu_1st_sem_evaluations,
-        "cu_1st_sem_approved": cu_1st_sem_approved,
-        "cu_1st_sem_grade": cu_1st_sem_grade,
-        "cu_1st_sem_without_evaluations": cu_1st_sem_without_evaluations,
-        "cu_2nd_sem_credited": cu_2nd_sem_credited,
-        "cu_2nd_sem_enrolled": cu_2nd_sem_enrolled,
-        "cu_2nd_sem_evaluations": cu_2nd_sem_evaluations,
-        "cu_2nd_sem_approved": cu_2nd_sem_approved,
-        "cu_2nd_sem_grade": cu_2nd_sem_grade,
-        "cu_2nd_sem_without_evaluations": cu_2nd_sem_without_evaluations,
-        "unemployment_rate": unemployment_rate,
-        "inflation_rate": inflation_rate,
-        "gdp": gdp
-    }
-    
-    with st.spinner("Processing features through FastAPI backend..."):
-        try:
-            response = requests.post("http://127.0.0.1:8000/predict", json=payload)
-            if response.status_code == 200:
-                res = response.json()
-                pred = res["prediction"]
-                prob = res["dropout_probability"]
-                status = res["risk_status"]
-                
-                st.markdown("### 📋 Prediction Diagnostic Report")
-                res_col1, res_col2 = st.columns(2)
-                with res_col1:
-                    if pred == 1:
-                        st.error(f"⚠️ **{status}**")
-                    else:
-                        st.success(f"✅ **{status}**")
-                        st.balloons()
-                with res_col2:
-                    st.metric(label="Model Confidence Probability", value=f"{prob * 100:.2f}%")
-            else:
-                st.error(f"Server Error: {response.text}")
-        except requests.exceptions.ConnectionError:
-            st.error("Connection failed! Ensure your FastAPI server is running (`python -m uvicorn backend:app --reload`).")
+if model is None:
+  st.error(
+      "⚠️ Model file (`student_dropout_model.pkl`) could not be loaded. Please"
+      " ensure it is present in the repository root."
+  )
+else:
+  with st.form("prediction_form"):
+    st.subheader("📝 Student Information")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+      age = st.number_input(
+          "Age at Enrollment", min_value=15, max_value=70, value=20
+      )
+      admission_grade = st.number_input(
+          "Admission Grade", min_value=0.0, max_value=200.0, value=120.0
+      )
+      tuition_up_to_date = st.selectbox(
+          "Tuition Fees Up To Date?", options=[1, 0], format_func=lambda x: "Yes" if x == 1 else "No"
+      )
+
+    with col2:
+      scholarship_holder = st.selectbox(
+          "Scholarship Holder?", options=[1, 0], format_func=lambda x: "Yes" if x == 1 else "No"
+      )
+      curricular_units_2nd_sem = st.number_input(
+          "Curricular Units 2nd Sem (Approved)", min_value=0, max_value=20, value=5
+      )
+      curricular_units_1st_sem = st.number_input(
+          "Curricular Units 1st Sem (Approved)", min_value=0, max_value=20, value=5
+      )
+
+    submitted = st.form_submit_button(
+        "🚀 Run Predictive Analytics", use_container_width=True
+    )
+
+  if submitted:
+    input_data = pd.DataFrame({
+        "Age at enrollment": [age],
+        "Admission grade": [admission_grade],
+        "Tuition fees up to date": [tuition_up_to_date],
+        "Scholarship holder": [scholarship_holder],
+        "Curricular units 2nd semester (approved)": [
+            curricular_units_2nd_sem
+        ],
+        "Curricular units 1st semester (approved)": [
+            curricular_units_1st_sem
+        ],
+    })
+
+    try:
+      prediction = model.predict(input_data)
+      prediction_proba = (
+          model.predict_proba(input_data)
+          if hasattr(model, "predict_proba")
+          else None
+      )
+
+      st.markdown("---")
+      st.subheader("📊 Prediction Results")
+
+      result = prediction[0]
+
+      if result == 1 or str(result).lower() in ["dropout", "1"]:
+        st.error(
+            "⚠️ **High Risk:** The student is predicted to be at **Risk of"
+            " Dropout**."
+        )
+      else:
+        st.success(
+            "✅ **Low Risk:** The student is predicted to **Stay Enrolled /"
+            " Graduate**."
+        )
+
+      if prediction_proba is not None:
+        confidence = max(prediction_proba[0]) * 100
+        st.info(f"🔍 **Model Confidence:** {confidence:.2f}%")
+
+    except Exception as e:
+      st.error(f"❌ Error during prediction: {e}")
