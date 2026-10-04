@@ -8,7 +8,7 @@ An end-to-end machine learning app that predicts whether a student is at risk of
 
 ## 📸 Screenshots
 
-| | | |
+
 
 | 
 
